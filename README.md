@@ -33,9 +33,9 @@ On the NAS, as root (`sudo -i` after SSH-ing in as an administrator):
 
 ```bash
 cd /volume1
-curl -fsSLO https://github.com/JannickNijholt/synology-hyperbackup-drime/archive/refs/tags/v0.1.0.tar.gz
-tar xzf v0.1.0.tar.gz
-sh synology-hyperbackup-drime-0.1.0/bridge/install.sh
+curl -fsSLO https://github.com/JannickNijholt/synology-hyperbackup-drime/archive/refs/tags/v0.1.1.tar.gz
+tar xzf v0.1.1.tar.gz
+sh synology-hyperbackup-drime-0.1.1/bridge/install.sh
 ```
 
 The installer:

@@ -23,9 +23,9 @@ Run only one of them; they use the same port.
 
 ```bash
 cd /volume1
-curl -fsSLO https://github.com/JannickNijholt/synology-hyperbackup-drime/archive/refs/tags/v0.1.0.tar.gz
-tar xzf v0.1.0.tar.gz
-sh synology-hyperbackup-drime-0.1.0/bridge/install.sh
+curl -fsSLO https://github.com/JannickNijholt/synology-hyperbackup-drime/archive/refs/tags/v0.1.1.tar.gz
+tar xzf v0.1.1.tar.gz
+sh synology-hyperbackup-drime-0.1.1/bridge/install.sh
 ```
 
 Installer options:
@@ -53,7 +53,7 @@ drime-bridge/
 └── logs/                bridge.log (rotated), supervisor.log
 ```
 
-Once installed, you can delete the downloaded `v0.1.0.tar.gz` and the unpacked release folder.
+Once installed, you can delete the downloaded `v0.1.1.tar.gz` and the unpacked release folder.
 
 ### 2. Start the bridge at boot
 
@@ -95,7 +95,7 @@ See [Hyper Backup settings](hyper-backup.md).
 Container Manager can only use folders inside a shared folder, so install there:
 
 ```bash
-sh synology-hyperbackup-drime-0.1.0/bridge/install.sh --container --home /volume1/docker/drime-bridge
+sh synology-hyperbackup-drime-0.1.1/bridge/install.sh --container --home /volume1/docker/drime-bridge
 ```
 
 The installer does everything Option A does except start the bridge. The rclone binary is still installed, because `health`, `cleanup` and `selftest.sh` use it.

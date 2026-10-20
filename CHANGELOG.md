@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.1 (2026-10-20)
 
 - Verified against the live Drime API: installer, all 25 protocol checks, and `selftest.sh` pass. Results are in `docs/research.md`.
 - `selftest.sh`: the bridge's certificate is now trusted only for calls to the bridge. Before, it replaced the system CAs for the direct Drime checks too, which made them fail against real Drime. Listing failures now fail their check instead of looking like an empty folder.
