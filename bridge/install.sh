@@ -132,7 +132,9 @@ install_rclone() {
 	curl -fsSL -o "$tmp/SHA256SUMS" "$base/SHA256SUMS"
 	want=$(awk -v f="$name.zip" '$2 == f {print $1}' "$tmp/SHA256SUMS")
 	got=$(sha256_of "$tmp/$name.zip")
-	[ -n "$want" ] && [ "$want" = "$got" ] || die "checksum mismatch for $name.zip (want $want, got $got)"
+	if [ -z "$want" ] || [ "$want" != "$got" ]; then
+		die "checksum mismatch for $name.zip (want $want, got $got)"
+	fi
 	say "checksum ok ($got)"
 	unzip_to "$tmp/$name.zip" "$tmp"
 	mkdir -p "$BRIDGE_HOME/bin"

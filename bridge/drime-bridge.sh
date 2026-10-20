@@ -50,8 +50,12 @@ stamp() { date '+%Y/%m/%d %H:%M:%S'; }
 preflight() {
 	[ -x "$RCLONE" ] || die "rclone not found at $RCLONE - run install.sh first"
 	[ -f "$RCLONE_CONF" ] || die "missing $RCLONE_CONF - run install.sh first"
-	[ -f "$TLS_DIR/cert.pem" ] && [ -f "$TLS_DIR/key.pem" ] || die "missing TLS files in $TLS_DIR - run install.sh first"
-	[ -n "$S3_ACCESS_KEY" ] && [ -n "$S3_SECRET_KEY" ] || die "S3_ACCESS_KEY/S3_SECRET_KEY not set in bridge.conf"
+	if [ ! -f "$TLS_DIR/cert.pem" ] || [ ! -f "$TLS_DIR/key.pem" ]; then
+		die "missing TLS files in $TLS_DIR - run install.sh first"
+	fi
+	if [ -z "$S3_ACCESS_KEY" ] || [ -z "$S3_SECRET_KEY" ]; then
+		die "S3_ACCESS_KEY/S3_SECRET_KEY not set in bridge.conf"
+	fi
 }
 
 pid_alive() { [ -n "${1:-}" ] && kill -0 "$1" 2>/dev/null; }
