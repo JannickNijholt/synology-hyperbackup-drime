@@ -10,13 +10,13 @@ flowchart LR
     BR -- "Drime API<br/>(official rclone backend)" --> D[("Drime")]
 ```
 
-> **Status: v0.1, ready for first real-world runs.** Every S3 behaviour Hyper Backup is known to depend on is covered by automated tests, which pass against rclone 1.75.2. What is not yet confirmed is a long-running Hyper Backup task on real DSM hardware. If you run it, please [report your results](../../issues/new?template=validation-report.yml). See [what is verified and what isn't](docs/research.md#7-what-is-verified-and-what-isnt).
+> **Status: v0.1, ready for first real-world runs.** Every S3 behaviour Hyper Backup is known to depend on is covered by automated tests. They pass against rclone 1.75.2, in CI and **against the live Drime API**, together with the end-to-end self-test. What is not yet confirmed is a long-running Hyper Backup task on real DSM hardware. If you run it, please [report your results](../../issues/new?template=validation-report.yml). See [what is verified and what isn't](docs/research.md#7-what-is-verified-and-what-isnt).
 
 ## Why this design
 
 - **An upload only counts once it is in Drime.** The bridge runs with rclone's VFS cache off. Hyper Backup's PUT is answered only after Drime has accepted the data, so a backup can't report success for data still sitting on a disk somewhere. That is the main failure mode of VPS relays and `rclone mount` caches.
 - **Integrity is checked on every request.** Each upload comes back with the MD5 ETag Hyper Backup checks. A corrupted upload (bad `Content-MD5`) is rejected, and an interrupted upload never leaves a partial object behind (both tested).
-- **It uses little of the NAS.** It's one static binary with no Docker required: about 35 MiB RAM idle and about 55–75 MiB while backing up. No disk space is used for staging.
+- **It uses little of the NAS.** It's one static binary with no Docker required: about 35 MiB RAM idle and about 75–80 MiB while backing up. No disk space is used for staging.
 - **It's built from maintained parts.** Drime lists the rclone backend as its official integration (Tier 1). Hyper Backup's S3 client is its most widely used cloud path. The glue here is a few hundred lines of POSIX shell.
 
 The [research notes](docs/research.md) cover every alternative that was evaluated and why it lost: native WebDAV/S3, `rclone mount`, local folder plus sync, WebDAV bridge, community Drime gateways and VPS relays.
@@ -82,7 +82,7 @@ If rclone ever exits, the bridge restarts it automatically. [Operations](docs/op
 
 ## Measured resource use
 
-These are Linux numbers for the bridge process (rclone 1.75.2, arm64, measured in a container), with Hyper Backup-style traffic:
+These are Linux numbers for the bridge process (rclone 1.75.2, arm64, measured in a container against a local stand-in for Drime), with Hyper Backup-style traffic:
 
 | Workload | Peak RAM |
 |---|---|
@@ -91,7 +91,7 @@ These are Linux numbers for the bridge process (rclone 1.75.2, arm64, measured i
 | 1 GB multipart, parts in order | ~52 MiB |
 | 1 GB multipart, 4 parts in parallel, out of order | ~180 MiB (capped by `MULTIPART_BUFFER_TOTAL`) |
 
-The real Drime backend adds up to about 20 MiB of upload buffers per file in flight. CPU use is mostly TLS and MD5, which is light even on ARM. No disk space is used apart from logs (rotated, about 20 MB at most).
+Against live Drime, the Drime backend's upload buffers add about 24 MiB per file in flight (measured), so expect **~75–80 MiB** during a typical backup. CPU use is mostly TLS and MD5, which is light even on ARM. No disk space is used apart from logs (rotated, about 20 MB at most).
 
 ## Restoring
 

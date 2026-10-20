@@ -12,6 +12,7 @@ import os
 import socket
 import ssl
 import sys
+import time
 from urllib.parse import urlparse
 
 import boto3
@@ -50,6 +51,21 @@ def check(name, ok, detail=""):
 
 def md5_b64(data):
     return base64.b64encode(hashlib.md5(data).digest()).decode()
+
+
+def eventually(fn, timeout=20):
+    """Polls fn until it returns (True, ...) or the timeout passes.
+
+    The bridge writes straight to the key on Drime, so until it has finished
+    tearing down an aborted upload (well under a second on a fast backend,
+    longer on a real API) readers can still see the in-flight data.
+    """
+    deadline = time.time() + timeout
+    while True:
+        ok, detail = fn()
+        if ok or time.time() > deadline:
+            return ok, detail
+        time.sleep(0.5)
 
 
 def interrupted_put(key, promised, sent):
@@ -145,13 +161,23 @@ s3.abort_multipart_upload(Bucket=BUCKET, Key="Pool/2/aborted", UploadId=up)
 keys = [o["Key"] for o in s3.list_objects(Bucket=BUCKET).get("Contents", [])]
 check("aborted multipart upload leaves no object", "Pool/2/aborted" not in keys, str(keys))
 
+def fresh_absent():
+    keys = [o["Key"] for o in s3.list_objects(Bucket=BUCKET).get("Contents", [])]
+    return "Pool/3/fresh.bucket" not in keys, str(keys)
+
+
+def previous_intact():
+    try:
+        return s3.get_object(Bucket=BUCKET, Key="Pool/0/0.bucket")["Body"].read() == data, "content differs"
+    except Exception as e:  # noqa: BLE001 - mid-teardown reads can fail in several ways
+        return False, f"{type(e).__name__}: {e}"
+
+
 interrupted_put("Pool/3/fresh.bucket", 8 * 1024 * 1024, 2 * 1024 * 1024)
-keys = [o["Key"] for o in s3.list_objects(Bucket=BUCKET).get("Contents", [])]
-check("interrupted upload stores nothing", "Pool/3/fresh.bucket" not in keys, str(keys))
+check("interrupted upload stores nothing", *eventually(fresh_absent))
 
 interrupted_put("Pool/0/0.bucket", 8 * 1024 * 1024, 2 * 1024 * 1024)
-body = s3.get_object(Bucket=BUCKET, Key="Pool/0/0.bucket")["Body"].read()
-check("interrupted overwrite keeps the previous object intact", body == data)
+check("interrupted overwrite keeps the previous object intact", *eventually(previous_intact))
 
 new = os.urandom(2048)
 s3.put_object(Bucket=BUCKET, Key="Pool/0/0.bucket", Body=new)

@@ -135,6 +135,12 @@ start() {
 		say "already running (pid $pid)"
 		return 0
 	fi
+	# Something else answering here (e.g. the Container Manager variant)
+	# would otherwise look like a successful start.
+	if port_open; then
+		say "port $LISTEN_PORT is already in use by another process; not starting" >&2
+		return 1
+	fi
 	mkdir -p "$LOG_DIR" "$RUN_DIR" "$BRIDGE_HOME/cache"
 	# Detach from the caller (e.g. a Task Scheduler boot task) so the bridge
 	# outlives it.

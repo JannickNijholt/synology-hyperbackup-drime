@@ -92,6 +92,20 @@ All tests are reproducible with [`tests/run-local.sh`](../tests/run-local.sh). T
 
 Throughput was never the bottleneck. Locally the bridge moved 50–100 MiB/s on a laptop, so your upload speed to Drime decides the speed.
 
+**Against the live Drime API** (2026-10-20, macOS arm64, rclone 1.75.2, installed with `install.sh`):
+
+| Test | Result |
+|---|---|
+| Installer: token check, folder and bucket creation, start, health check | pass |
+| All 25 S3 protocol checks (the table above) | pass |
+| `selftest.sh`: 4 KiB and 48 MiB single-part, 160 MiB multipart (16 MiB parts, 4 in parallel); byte-for-byte read-back; files present in Drime at the exact sizes; overwrite leaves no duplicate; delete; no temp objects | pass |
+| Interrupted overwrite: bridge and Drime both still show the original object (same MD5) | pass |
+| Re-running the installer keeps token, keys and certificate | pass |
+| Throughput (limited by that test machine's uplink) | 7–15 MiB/s up, 17 MiB/s read-back |
+| Memory, sequential 50 MB uploads (macOS RSS) | 58 MiB idle, 106 MiB peak. Against the stand-in on the same machine it was 82 MiB, so the Drime backend adds about 24 MiB. |
+
+On Linux, with its lower baseline, that means about 75–80 MiB during a typical backup.
+
 ## 6. Known gaps and open questions
 
 1. **HEAD, LIST and CopyObject return an empty ETag for Drime objects.** rclone can only report an MD5 the backend gives it, and Drime gives none. Upload responses (PutObject, UploadPart, CompleteMultipartUpload) do carry correct ETags, because the bridge computes them from the data as it streams through. Hyper Backup is only *known* to check ETags on upload responses. Whether it also checks them on HEAD or LIST, or uses CopyObject at all, has to be confirmed on real DSM (§7).
@@ -102,6 +116,7 @@ Throughput was never the bottleneck. Locally the bridge moved 50–100 MiB/s on 
 4. **Failed uploads can leave empty folders in Drime.** They're harmless and invisible to S3 clients, but they stop `DeleteBucket`.
 5. **Out-of-order multipart parts are buffered in RAM**, up to the configured caps. A part that doesn't fit waits up to 1 minute for its turn, then gets `SlowDown` and is retried by the client. Keep Hyper Backup's part size moderate (64 MB).
 6. **Drime-side eventual consistency:** the rclone backend notes that a renamed folder can list as empty for a short time. The bridge never renames folders, and multipart completion renames a single file.
+7. **An upload in progress is visible at its key.** For single-part uploads, rclone writes to Drime under the final name: Drime commits the file only on success, so rclone uses no temp file and rename. While the upload runs, a reader of that same key through the bridge sees the partial new data instead of the old object. Once the upload succeeds or is aborted, everything is consistent again (measured: about a second after the abort on live Drime). Nothing partial is ever stored in Drime. Hyper Backup doesn't read an object while it is writing that same object, so this shouldn't affect it. It is still a deviation from strict S3 semantics, and the protocol test checks the state after the abort rather than during it.
 
 ## 7. What is verified and what isn't
 
@@ -110,7 +125,7 @@ Throughput was never the bottleneck. Locally the bridge moved 50–100 MiB/s on 
 | Bridge implements every S3 call and behaviour listed in §3 | Verified by automated tests (§5) |
 | Uploads are acknowledged only after the backend has them; no partial objects | Verified by automated tests |
 | Runs on Linux arm64 within the memory figures above | Verified (container) |
-| rclone's Drime backend against the live Drime API | Covered by rclone's own integration tests; run `selftest.sh` to confirm on your account |
+| Bridge against the live Drime API: all protocol checks, `selftest.sh`, interrupted uploads | Verified (2026-10-20, §5). Run `selftest.sh` to confirm on your own account. |
 | Hyper Backup on real DSM: create task, back up, integrity check, restore | **Pending first reports**; please file a [validation report](../../../issues/new?template=validation-report.yml) |
 
 ## 8. Future directions

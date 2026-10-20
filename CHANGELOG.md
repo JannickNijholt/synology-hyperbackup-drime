@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Verified against the live Drime API: installer, all 25 protocol checks, and `selftest.sh` pass. Results are in `docs/research.md`.
+- `selftest.sh`: the bridge's certificate is now trusted only for calls to the bridge. Before, it replaced the system CAs for the direct Drime checks too, which made them fail against real Drime. Listing failures now fail their check instead of looking like an empty folder.
+- Protocol test: the interrupted-upload checks wait for the abort to finish, as slower real backends need.
+- Docs: memory figures for live Drime (~75–80 MiB during backups), and a new known gap: an upload in progress is visible at its key.
+- `drime-bridge.sh start` refuses to start when another process already holds the port (e.g. the Container Manager variant), instead of reporting success.
+- Guard checks rewritten as `if` statements for older ShellCheck (no behaviour change).
+
 ## v0.1.0 (2026-10-20)
 
 First release.
