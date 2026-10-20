@@ -1,0 +1,32 @@
+# drime-bridge settings. install.sh copies this to bridge.conf and fills in the
+# S3 keys. Change a value, then run: drime-bridge.sh restart
+
+# Drime folder that holds the backups. Every sub-folder of it is one S3
+# "bucket" as Hyper Backup sees it.
+DRIME_ROOT="drime:HyperBackup"
+
+# Where the bridge listens. Keep 127.0.0.1 so only the NAS itself can reach it.
+LISTEN_ADDR="127.0.0.1:18443"
+
+# Credentials Hyper Backup uses for the bridge. These are NOT your Drime
+# credentials; install.sh generates random ones.
+S3_ACCESS_KEY=""
+S3_SECRET_KEY=""
+
+# Memory. GOMEMLIMIT-style soft cap for rclone, plus caps for multipart parts
+# that arrive out of order (in-order parts stream through without buffering).
+# Low-RAM preset (1 GB NAS): 128MiB / 32M / 64M with a 16 MB part size in
+# Hyper Backup.
+MEMORY_LIMIT="256MiB"
+MULTIPART_BUFFER_PER_UPLOAD="128M"
+MULTIPART_BUFFER_TOTAL="256M"
+
+# NOTICE for normal use, DEBUG to record every S3 call Hyper Backup makes.
+LOG_LEVEL="NOTICE"
+
+# Upload speed limit, optionally as a timetable, e.g. "08:00,20M 23:00,off"
+# (20 MiB/s from 08:00, unlimited from 23:00). Empty = no limit.
+BWLIMIT=""
+
+# Any extra rclone flags, separated by spaces, e.g. "--tpslimit 20".
+EXTRA_FLAGS=""

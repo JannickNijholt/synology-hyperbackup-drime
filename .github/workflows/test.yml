@@ -1,0 +1,52 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Weekly, to catch regressions in new rclone releases before users upgrade.
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck -s sh -x bridge/*.sh tests/*.sh
+
+  bridge:
+    name: bridge (${{ matrix.runner }}, rclone ${{ matrix.rclone }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        rclone: [pinned, latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install boto3
+      # "pinned" lets install.sh download and verify rclone itself, which tests
+      # that path; "latest" fetches the newest release here.
+      - name: Download and verify the latest rclone
+        if: matrix.rclone == 'latest'
+        run: |
+          v=$(curl -fsSL https://downloads.rclone.org/version.txt | sed 's/^rclone v//')
+          case "$(uname -m)" in x86_64) a=amd64 ;; aarch64) a=arm64 ;; esac
+          name="rclone-v$v-linux-$a"
+          mkdir -p "$RUNNER_TEMP/rclone" && cd "$RUNNER_TEMP/rclone"
+          curl -fsSLO "https://downloads.rclone.org/v$v/$name.zip"
+          curl -fsSLO "https://downloads.rclone.org/v$v/SHA256SUMS"
+          grep " $name.zip\$" SHA256SUMS | sha256sum -c -
+          unzip -q "$name.zip"
+          echo "RCLONE_BIN=$RUNNER_TEMP/rclone/$name/rclone" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/rclone/$name/rclone" version | head -n 1
+      - run: sh tests/run-local.sh ${RCLONE_BIN:+"$RCLONE_BIN"}
+        env:
+          PYTHON: python

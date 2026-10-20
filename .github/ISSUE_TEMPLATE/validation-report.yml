@@ -1,0 +1,67 @@
+name: Validation report
+description: Tell us how the bridge worked with Hyper Backup on your NAS, whether it worked or not.
+title: "[validation] <NAS model>, DSM <version>: <works / fails>"
+labels: [validation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Each report helps others know what works.
+        **Remove anything personal before posting**: tokens, keys, hostnames, IP addresses, share names.
+  - type: input
+    id: model
+    attributes:
+      label: NAS model and CPU
+      placeholder: e.g. DS224+ (x86-64), DS223j (ARMv8)
+    validations:
+      required: true
+  - type: input
+    id: dsm
+    attributes:
+      label: DSM and Hyper Backup versions
+      placeholder: e.g. DSM 7.2.2-72806, Hyper Backup 4.1.2
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Bridge and rclone versions
+      placeholder: e.g. v0.1.0, rclone v1.75.2
+    validations:
+      required: true
+  - type: dropdown
+    id: variant
+    attributes:
+      label: How the bridge runs
+      options:
+        - Boot-up task (Option A)
+        - Container Manager (Option B)
+    validations:
+      required: true
+  - type: checkboxes
+    id: results
+    attributes:
+      label: What worked
+      options:
+        - label: selftest.sh passed
+        - label: Hyper Backup created the task and listed the bucket
+        - label: First full backup completed
+        - label: Later incremental backups completed
+        - label: Integrity check passed
+        - label: Test restore worked
+  - type: input
+    id: size
+    attributes:
+      label: Backup size, part size and upload speed
+      placeholder: e.g. 800 GB source, 64 MB parts, ~90 Mbit/s up
+  - type: input
+    id: memory
+    attributes:
+      label: Bridge memory during backup (from drime-bridge.sh status)
+      placeholder: e.g. 70 MiB RSS
+  - type: textarea
+    id: problems
+    attributes:
+      label: Problems, errors, observations
+      description: Hyper Backup error messages, and lines from logs/bridge.log (check them for personal data first).
+      render: text

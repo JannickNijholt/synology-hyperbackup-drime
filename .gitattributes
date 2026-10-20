@@ -1,0 +1,4 @@
+# Scripts run on DSM and in Alpine; CRLF line endings would break them.
+*.sh text eol=lf
+*.example text eol=lf
+*.yaml text eol=lf

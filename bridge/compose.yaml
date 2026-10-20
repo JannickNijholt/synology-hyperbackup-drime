@@ -1,0 +1,42 @@
+# The same bridge as a Container Manager project, instead of a boot-up task.
+#
+# Prepare the folder first with `install.sh --container` (it creates
+# rclone.conf, tls/ and bridge.conf here), then in Container Manager:
+# Project > Create > Path: this folder > "Use existing docker-compose.yml".
+# Run either this or the boot-up task, never both: they use the same port.
+
+services:
+  drime-bridge:
+    image: rclone/rclone:1.75.2
+    container_name: drime-bridge
+    restart: unless-stopped
+    # S3 keys, DRIME_ROOT and memory settings come from bridge.conf.
+    env_file: ./bridge.conf
+    environment:
+      RCLONE_CONFIG: /config/rclone.conf
+    entrypoint: ["/bin/sh", "-c"]
+    # Same flags as drime-bridge.sh; see there for why --vfs-cache-mode off.
+    command:
+      - |
+        export RCLONE_AUTH_KEY="\"$$S3_ACCESS_KEY,$$S3_SECRET_KEY\"" GOMEMLIMIT="$$MEMORY_LIMIT"
+        exec rclone serve s3 "$$DRIME_ROOT" \
+          --addr :18443 \
+          --cert /config/tls/cert.pem --key /config/tls/key.pem --min-tls-version tls1.2 \
+          --vfs-cache-mode off \
+          --multipart-streaming-buffer-limit "$$MULTIPART_BUFFER_PER_UPLOAD" \
+          --multipart-streaming-buffer-total "$$MULTIPART_BUFFER_TOTAL" \
+          --use-mmap \
+          --cache-dir /tmp/rclone \
+          --stats 0 \
+          --log-level "$$LOG_LEVEL" \
+          $${BWLIMIT:+--bwlimit "$$BWLIMIT"} \
+          $$EXTRA_FLAGS
+    ports:
+      - "127.0.0.1:18443:18443"
+    volumes:
+      - ./rclone.conf:/config/rclone.conf:ro
+      - ./tls:/config/tls:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 512m

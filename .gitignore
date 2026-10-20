@@ -1,0 +1,16 @@
+# Never commit a live bridge install: these hold secrets.
+bridge.conf
+rclone.conf
+*.pem
+*.key
+tls/
+logs/
+run/
+cache/
+bin/
+.download.*
+
+# Local tooling
+.venv/
+__pycache__/
+.DS_Store
